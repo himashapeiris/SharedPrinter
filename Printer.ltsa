@@ -1,0 +1,25 @@
+
+//maximum number of documents printer can print at once
+const MAX_PAPER_COUNT=3
+//maximum number of printings before refill the printer
+const PRINT_MAX_COUNT=3
+
+range PRINT_RANGE=1..PRINT_MAX_COUNT
+
+//Alphabet Extension
+set ALLACTIONS={aquireStudent,aquireTechnician,print,refill,releasePrinter}
+
+//print should be a synchronous action.So the relabeling has been done at end of the STUDENT process
+STUDENT(PAPER_COUNT=MAX_PAPER_COUNT)=STUDENT_PRINT[PAPER_COUNT],
+STUDENT_PRINT[i:0..MAX_PAPER_COUNT]=(when(i>0) aquireStudent->print[i]->releasePrinter->STUDENT_PRINT[i-1])+ ALLACTIONS/{print/print[PRINT_RANGE]}.
+
+TECHNICIAN=(aquireTechnician->refill->releasePrinter->TECHNICIAN | wait->TECHNICIAN )+ ALLACTIONS.
+
+PRINTER=PRINT_MACHINE[PRINT_MAX_COUNT],
+PRINT_MACHINE[i: 0..PRINT_MAX_COUNT]=(when(i > 0)aquireStudent->print->releasePrinter->PRINT_MACHINE[i-1] | when(i==0) aquireTechnician->refill->releasePrinter->PRINT_MACHINE[PRINT_MAX_COUNT]).
+
+//Composite process
+||SHARED_PRINTER=(st3 : STUDENT(3)
+                 || st2 : STUDENT(2)
+                 || t : TECHNICIAN
+                 ||{st3,st2,t} :: PRINTER).
